@@ -1,0 +1,14 @@
+{
+    "pubGuessA": 3,
+    "pubGuessB": 1,
+    "pubGuessC": 5,
+    "pubGuessD": 6,
+    "pubNumHit": 1,
+    "pubNumBlow": 2,
+    "pubSolnHash": "14936534546887887053447936903969015918087871182330438503354638690785193351094",
+    "privSolnA": 6,
+    "privSolnB": 1,
+    "privSolnC": 3,
+    "privSolnD": 9,
+    "privSalt": "25288058948757630068625026399281744617723499579053530095691895693204456068434"
+}
