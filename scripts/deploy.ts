@@ -1,29 +1,34 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// When running the script with `npx hardhat run <script>` you'll find the Hardhat
-// Runtime Environment's members available in the global scope.
 import { ethers } from "hardhat";
+import { HitAndBlow } from "../typechain";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+const { poseidonContract } = require("circomlibjs");
 
-async function main() {
-  // Hardhat always runs the compile task when running scripts with its command
-  // line interface.
-  //
-  // If this script is run directly using `node` you may want to call compile
-  // manually to make sure everything is compiled
-  // await hre.run('compile');
-
-  // We get the contract to deploy
-  const Greeter = await ethers.getContractFactory("Greeter");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
-
-  await greeter.deployed();
-
-  console.log("Greeter deployed to:", greeter.address);
+async function deploy(contractName: string, ...args: any[]) {
+  const Factory = await ethers.getContractFactory(contractName);
+  const instance = await Factory.deploy(...args);
+  return instance.deployed();
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
+async function deployPoseidon(signer: SignerWithAddress) {
+  const Factory = new ethers.ContractFactory(
+    poseidonContract.generateABI(5),
+    poseidonContract.createCode(5),
+    signer
+  );
+  const instance = await Factory.deploy();
+  return instance.deployed();
+}
+async function main() {
+  const [owner] = await ethers.getSigners();
+  const poseidonContract = await deployPoseidon(owner);
+  const hitAndBlow = (await deploy(
+    "HitAndBlow",
+    poseidonContract.address
+  )) as HitAndBlow;
+
+  console.log("hitAndBlow deployed to:", hitAndBlow.address);
+}
+
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
