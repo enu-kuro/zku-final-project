@@ -121,7 +121,7 @@ describe("Hit and Blow!", function () {
     // const [owner, player1, player2] = await ethers.getSigners();
     await hitAndBlow.connect(player1).register();
     expect(await hitAndBlow.connect(player2).register())
-      .to.emit(hitAndBlow, "StageChanged")
+      .to.emit(hitAndBlow, "StageChange")
       .withArgs(1);
 
     const solution1: FourNumbers = [4, 5, 6, 7];
@@ -139,7 +139,7 @@ describe("Hit and Blow!", function () {
 
     await hitAndBlow.connect(player1).commitSolutionHash(solutionHash1);
     await expect(hitAndBlow.connect(player2).commitSolutionHash(solutionHash2))
-      .to.emit(hitAndBlow, "StageChanged")
+      .to.emit(hitAndBlow, "StageChange")
       .withArgs(2);
 
     const guess1: FourNumbers = [1, 2, 3, 9];
@@ -193,7 +193,7 @@ describe("Hit and Blow!", function () {
     };
     const proofHitAll = await generateProof(proofInputHitAll);
     expect(await hitAndBlow.connect(player2).submitHbProof(...proofHitAll))
-      .to.emit(hitAndBlow, "StageChanged")
+      .to.emit(hitAndBlow, "StageChange")
       .withArgs(3);
 
     expect(await hitAndBlow.connect(player1).reveal(salt1, ...solution1))
@@ -202,6 +202,13 @@ describe("Hit and Blow!", function () {
       .to.emit(hitAndBlow, "GameFinish")
       .withArgs();
 
+    // Initialize
     expect(await hitAndBlow.stage()).to.equal(0);
+    expect(
+      (await hitAndBlow.submittedGuess(0, player1.address)).submitted
+    ).to.equal(false);
+    expect(
+      (await hitAndBlow.submittedHB(0, player2.address)).submitted
+    ).to.equal(false);
   });
 });

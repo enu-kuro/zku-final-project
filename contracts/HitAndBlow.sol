@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "./verifier.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IHasher {
     function poseidon(uint256[5] calldata inputs)
@@ -11,7 +12,7 @@ interface IHasher {
         returns (uint256);
 }
 
-contract HitAndBlow is Verifier {
+contract HitAndBlow is Verifier, Ownable {
     string private greeting;
     uint8 public constant MAX_ROUND = 50;
     uint8 public currentRound = 0;
@@ -50,7 +51,6 @@ contract HitAndBlow is Verifier {
 
     mapping(address => Guess)[MAX_ROUND] public submittedGuess;
     mapping(address => HB)[MAX_ROUND] public submittedHB;
-    // mapping(address => bool) public isHbSubmitted;
 
     event SubmitGuess(
         address indexed player,
@@ -67,9 +67,13 @@ contract HitAndBlow is Verifier {
         uint8 blow
     );
 
-    event StageChanged(Stages stage);
+    event StageChange(Stages stage);
+    event Register(address indexed player);
+    event CommitSolutionHash(address indexed player, uint256 solutionHash);
+
     event Reveal(address indexed player, uint8 a, uint8 b, uint8 c, uint8 d);
     event GameFinish();
+    event Initialize();
     IHasher public hasher;
 
     constructor(IHasher _hasher) {
@@ -77,14 +81,30 @@ contract HitAndBlow is Verifier {
         hasher = _hasher;
     }
 
+    function initialize() public onlyOwner {
+        initGameState();
+    }
+
     function initGameState() private {
         stage = Stages.StageZero;
         currentRound = 0;
-        delete submittedGuess;
-        delete submittedHB;
+        // looking for better way...
+        for (uint8 i = 0; i < MAX_ROUND; i++) {
+            delete submittedGuess[i][players[0]];
+            delete submittedGuess[i][players[1]];
+            delete submittedHB[i][players[0]];
+            delete submittedHB[i][players[1]];
+        }
+        solutionHashes[players[0]] = 0;
+        solutionHashes[players[1]] = 0;
         players[0] = address(0);
         players[1] = address(0);
         winner = address(0);
+        emit Initialize();
+    }
+
+    function getplayers() public view returns (address[2] memory) {
+        return players;
     }
 
     function getOpponentAddr() private view returns (address) {
@@ -98,22 +118,27 @@ contract HitAndBlow is Verifier {
     function register() public atStage(Stages.StageZero) {
         if (players[0] == address(0)) {
             players[0] = msg.sender;
+            emit Register(msg.sender);
         } else {
+            require(players[0] != msg.sender, "already registerd!");
             players[1] = msg.sender;
             stage = Stages.StageOne;
-            emit StageChanged(Stages.StageOne);
+            emit StageChange(Stages.StageOne);
         }
     }
 
+    // TODO: 数値の重複防ぐにはどうする？
     function commitSolutionHash(uint256 solutionHash)
         public
         atStage(Stages.StageOne)
     {
         solutionHashes[msg.sender] = solutionHash;
+        emit CommitSolutionHash(msg.sender, solutionHash);
+
         // 0で比較すると本当に0のときに困る...
         if (solutionHashes[getOpponentAddr()] != 0) {
             stage = Stages.StageTwo;
-            emit StageChanged(Stages.StageTwo);
+            emit StageChange(Stages.StageTwo);
         }
     }
 
@@ -150,15 +175,16 @@ contract HitAndBlow is Verifier {
         require(verifyProof(a, b, c, input), "verification error");
         uint8 hit = uint8(input[5]);
         uint8 blow = uint8(input[6]);
+        HB memory hb = HB(hit, blow, true);
+        submittedHB[currentRound][msg.sender] = hb;
+
         if (hit == 4) {
             winner = getOpponentAddr();
             stage = Stages.StageThree;
-            emit StageChanged(Stages.StageThree);
+            emit StageChange(Stages.StageThree);
             return;
         }
 
-        HB memory hb = HB(hit, blow, true);
-        submittedHB[currentRound][msg.sender] = hb;
         address opponentAddr = getOpponentAddr();
         uint8 _currentRound = currentRound;
         if (submittedHB[currentRound][opponentAddr].submitted == true) {
