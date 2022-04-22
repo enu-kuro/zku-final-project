@@ -15,7 +15,8 @@ interface IHasher {
 contract HitAndBlow is Verifier, Ownable {
     string private greeting;
     uint8 public constant MAX_ROUND = 50;
-    uint8 public currentRound = 0;
+    // TODO: 1始まりにした方が良い？solidityで0はnullと同じ扱いなので。
+    uint8 public currentRound = 1;
     address[2] public players;
     address public winner;
     mapping(address => uint256) public solutionHashes;
@@ -87,7 +88,7 @@ contract HitAndBlow is Verifier, Ownable {
 
     function initGameState() private {
         stage = Stages.StageZero;
-        currentRound = 0;
+        currentRound = 1;
         // looking for better way...
         for (uint8 i = 0; i < MAX_ROUND; i++) {
             delete submittedGuess[i][players[0]];
@@ -105,6 +106,29 @@ contract HitAndBlow is Verifier, Ownable {
 
     function getplayers() public view returns (address[2] memory) {
         return players;
+    }
+
+    function getSubmittedGuess(address player)
+        public
+        view
+        returns (Guess[] memory)
+    {
+        console.log("getSubmittedGuess!");
+        Guess[] memory guessArray = new Guess[](currentRound);
+
+        for (uint8 i = 0; i < currentRound; i++) {
+            guessArray[i] = submittedGuess[i][player];
+        }
+        return guessArray;
+    }
+
+    function getSubmittedHB(address player) public view returns (HB[] memory) {
+        HB[] memory hbArray = new HB[](currentRound);
+
+        for (uint8 i = 0; i < currentRound; i++) {
+            hbArray[i] = submittedHB[i][player];
+        }
+        return hbArray;
     }
 
     function getOpponentAddr() private view returns (address) {
@@ -149,12 +173,12 @@ contract HitAndBlow is Verifier, Ownable {
         uint8 guess4
     ) public atStage(Stages.StageTwo) {
         require(
-            submittedGuess[currentRound][msg.sender].submitted == false,
+            submittedGuess[currentRound - 1][msg.sender].submitted == false,
             "already submitted!"
         );
 
         Guess memory guess = Guess(guess1, guess2, guess3, guess4, true);
-        submittedGuess[currentRound][msg.sender] = guess;
+        submittedGuess[currentRound - 1][msg.sender] = guess;
 
         emit SubmitGuess(
             msg.sender,
@@ -176,7 +200,7 @@ contract HitAndBlow is Verifier, Ownable {
         uint8 hit = uint8(input[5]);
         uint8 blow = uint8(input[6]);
         HB memory hb = HB(hit, blow, true);
-        submittedHB[currentRound][msg.sender] = hb;
+        submittedHB[currentRound - 1][msg.sender] = hb;
 
         if (hit == 4) {
             winner = getOpponentAddr();
@@ -187,7 +211,7 @@ contract HitAndBlow is Verifier, Ownable {
 
         address opponentAddr = getOpponentAddr();
         uint8 _currentRound = currentRound;
-        if (submittedHB[currentRound][opponentAddr].submitted == true) {
+        if (submittedHB[currentRound - 1][opponentAddr].submitted == true) {
             currentRound++;
         }
 

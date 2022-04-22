@@ -117,6 +117,17 @@ describe("Hit and Blow!", function () {
     poseidonJs = await buildPoseidon();
   });
 
+  it("fetch", async function () {
+    const submittedGuess = await hitAndBlow
+      .connect(player1)
+      .getSubmittedGuess(player1.address);
+    expect(submittedGuess[0].submitted).to.equal(false);
+    const submittedHB = await hitAndBlow
+      .connect(player1)
+      .getSubmittedHB(player1.address);
+    expect(submittedHB[0].submitted).to.equal(false);
+  });
+
   it("play game!", async function () {
     // const [owner, player1, player2] = await ethers.getSigners();
     await hitAndBlow.connect(player1).register();
@@ -145,7 +156,7 @@ describe("Hit and Blow!", function () {
     const guess1: FourNumbers = [1, 2, 3, 9];
     await expect(hitAndBlow.connect(player1).submitGuess(...guess1))
       .to.emit(hitAndBlow, "SubmitGuess")
-      .withArgs(player1.address, 0, ...guess1);
+      .withArgs(player1.address, 1, ...guess1);
 
     const guess2: FourNumbers = [1, 2, 3, 4];
     await hitAndBlow.connect(player2).submitGuess(...guess2);
@@ -173,7 +184,7 @@ describe("Hit and Blow!", function () {
     // TOOD: proof for player1
     await expect(hitAndBlow.connect(player1).submitHbProof(...proof2))
       .to.emit(hitAndBlow, "SubmitHB")
-      .withArgs(player1.address, 0, ...[hit, blow]);
+      .withArgs(player1.address, 1, ...[hit, blow]);
 
     await hitAndBlow.connect(player1).submitGuess(...solution2);
 
