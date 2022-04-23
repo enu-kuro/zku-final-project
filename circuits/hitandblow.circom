@@ -33,6 +33,7 @@ template HitAndBlow() {
     component equalSoln[6];
     var equalIdx = 0;
 
+    // Create a constraint that input solutions and guesses are all less than 10.
     for (j=0; j<4; j++) {
         lessThan[j] = LessThan(4);
         lessThan[j].in[0] <== guess[j];
@@ -55,6 +56,7 @@ template HitAndBlow() {
         }
     }
 
+    // Count hit & blow
     var hit = 0;
     var blow = 0;
     component equalHB[16];
@@ -72,16 +74,19 @@ template HitAndBlow() {
         }
     }
 
+    // Create a constraint around the number of hit
     component equalHit = IsEqual();
     equalHit.in[0] <== pubNumHit;
     equalHit.in[1] <== hit;
     equalHit.out === 1;
     
+    // Create a constraint around the number of blow
     component equalBlow = IsEqual();
     equalBlow.in[0] <== pubNumBlow;
     equalBlow.in[1] <== blow;
     equalBlow.out === 1;
 
+    // Verify that the hash of the private solution matches pubSolnHash
     component poseidon = Poseidon(5);
     poseidon.inputs[0] <== privSalt;
     poseidon.inputs[1] <== privSolnA;
@@ -90,6 +95,7 @@ template HitAndBlow() {
     poseidon.inputs[4] <== privSolnD;
 
     solnHashOut <== poseidon.out;
+    pubSolnHash === solnHashOut;
  }
 
  component main {public [pubGuessA, pubGuessB, pubGuessC, pubGuessD, pubNumHit, pubNumBlow, pubSolnHash]} = HitAndBlow();
