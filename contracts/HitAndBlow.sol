@@ -82,7 +82,9 @@ contract HitAndBlow is Verifier, Ownable {
         hasher = _hasher;
     }
 
-    function initialize() public onlyOwner {
+    // for debug everyone can initialize states
+    // function initialize() public onlyOwner {
+    function initialize() public {
         initGameState();
     }
 
@@ -190,6 +192,7 @@ contract HitAndBlow is Verifier, Ownable {
         );
     }
 
+    // TODO: how to handle draw?
     function submitHbProof(
         uint256[2] memory a,
         uint256[2][2] memory b,
@@ -210,12 +213,11 @@ contract HitAndBlow is Verifier, Ownable {
         }
 
         address opponentAddr = getOpponentAddr();
-        uint8 _currentRound = currentRound;
         if (submittedHB[currentRound - 1][opponentAddr].submitted == true) {
             currentRound++;
         }
 
-        emit SubmitHB(msg.sender, _currentRound, hit, blow);
+        emit SubmitHB(msg.sender, currentRound, hit, blow);
     }
 
     function reveal(
