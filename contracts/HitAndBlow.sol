@@ -149,6 +149,7 @@ contract HitAndBlow is Verifier, Ownable {
             require(players[0] != msg.sender, "already registerd!");
             players[1] = msg.sender;
             stage = Stages.StageOne;
+            emit Register(msg.sender);
             emit StageChange(Stages.StageOne);
         }
     }

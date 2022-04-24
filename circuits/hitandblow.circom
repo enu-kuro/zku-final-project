@@ -33,7 +33,7 @@ template HitAndBlow() {
     component equalSoln[6];
     var equalIdx = 0;
 
-    // Create a constraint that input solutions and guesses are all less than 10.
+    // Create a constraint that the solution and guess digits are all less than 10.
     for (j=0; j<4; j++) {
         lessThan[j] = LessThan(4);
         lessThan[j].in[0] <== guess[j];
@@ -44,6 +44,7 @@ template HitAndBlow() {
         lessThan[j+4].in[1] <== 10;
         lessThan[j+4].out === 1;
         for (k=j+1; k<4; k++) {
+            // Create a constraint that the solution and guess digits are unique. no duplication.
             equalGuess[equalIdx] = IsEqual();
             equalGuess[equalIdx].in[0] <== guess[j];
             equalGuess[equalIdx].in[1] <== guess[k];
