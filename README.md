@@ -230,8 +230,7 @@ https://github.com/enu-kuro/zku-final-project/blob/main/test/index.ts
 
 # Demo
 
-https://user-images.githubusercontent.com/3497643/165048222-72250e91-d38e-4b70-ac7f-ff1287569935.mov
-
+https://user-images.githubusercontent.com/3497643/165052870-ab75f981-b9f8-4fc6-9d7d-1a09e57e699a.mp4
 
 # Frontend code
 
