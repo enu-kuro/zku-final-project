@@ -149,21 +149,19 @@ Though it needs offchain servers, probably there are some ways to make it more d
 https://github.com/enu-kuro/zku-final-project/blob/main/circuits/hitandblow.circom
 
 
-## Test code for 2 players playing the game from beginning to end
+## Test code
+
+- register
 ```
     // register
     await hitAndBlow.connect(player1).register();
     expect(await hitAndBlow.connect(player2).register())
       .to.emit(hitAndBlow, "StageChange")
       .withArgs(1);
+```
 
-    // Player1 Solution & SolutionHash
-    const solution1: FourNumbers = [4, 5, 6, 7];
-    const salt1 = ethers.BigNumber.from(ethers.utils.randomBytes(32));
-    const solutionHash1 = ethers.BigNumber.from(
-      poseidonJs.F.toObject(poseidonJs([salt1, ...solution1]))
-    );
-
+- generate and commit SolutionHash 
+```
     // Player2 Solution & SolutionHash
     const solution2: FourNumbers = [6, 1, 3, 9];
     const salt2 = ethers.BigNumber.from(ethers.utils.randomBytes(32));
@@ -176,13 +174,19 @@ https://github.com/enu-kuro/zku-final-project/blob/main/circuits/hitandblow.circ
     await expect(hitAndBlow.connect(player2).commitSolutionHash(solutionHash2))
       .to.emit(hitAndBlow, "StageChange")
       .withArgs(2);
+```
 
+- submit guess
+```
     // Player1 submits guess
     const guess1: FourNumbers = [1, 2, 3, 9];
     await expect(hitAndBlow.connect(player1).submitGuess(...guess1))
       .to.emit(hitAndBlow, "SubmitGuess")
       .withArgs(player1.address, 1, ...guess1);
+```
 
+- generate and verify proof
+```
     /*
       Player2 receives Player1's guess and submits num of hit & blow with zk proof.
     */
@@ -210,69 +214,10 @@ https://github.com/enu-kuro/zku-final-project/blob/main/circuits/hitandblow.circ
     const proof2 = await generateProof(proofInput2);
     // Submit proof and verify proof in SmartContract.
     await hitAndBlow.connect(player2).submitHbProof(...proof2);
+```
 
-    // Player2 submits guess
-    const guess2: FourNumbers = [1, 2, 3, 4];
-    await hitAndBlow.connect(player2).submitGuess(...guess2);
-
-    /*
-      Player1 receives Player2's guess and submits num of hit & blow with zk proof.
-    */
-
-    // 0 hit 1 blow (Solution: [4, 5, 6, 7], Guess: [1, 2, 3, 4])
-    const [hit1, blow1] = calculateHB(guess2, solution1);
-
-    const proofInput1: ProofInput = {
-      pubGuessA: guess2[0],
-      pubGuessB: guess2[1],
-      pubGuessC: guess2[2],
-      pubGuessD: guess2[3],
-      pubNumHit: hit1,
-      pubNumBlow: blow1,
-      pubSolnHash: solutionHash1,
-      privSolnA: solution1[0],
-      privSolnB: solution1[1],
-      privSolnC: solution1[2],
-      privSolnD: solution1[3],
-      privSalt: salt1,
-    };
-
-    const proof1 = await generateProof(proofInput1);
-    await expect(hitAndBlow.connect(player1).submitHbProof(...proof1))
-      .to.emit(hitAndBlow, "SubmitHB")
-      .withArgs(player1.address, 2, ...[hit1, blow1]);
-
-    // Player1 submits correct guess.
-    const allHitGuess = solution2;
-    await hitAndBlow.connect(player1).submitGuess(...allHitGuess);
-
-    /*
-      Player2 receives Player1's 4 hits guess and submits result with zk proof.
-    */
-    // It must be 4 hits and 0 blow.
-    const [hit4, blow0] = calculateHB(allHitGuess, solution2);
-
-    const proofInputHitAll: ProofInput = {
-      pubGuessA: solution2[0],
-      pubGuessB: solution2[1],
-      pubGuessC: solution2[2],
-      pubGuessD: solution2[3],
-      pubNumHit: hit4,
-      pubNumBlow: blow0,
-      pubSolnHash: solutionHash2,
-      privSolnA: solution2[0],
-      privSolnB: solution2[1],
-      privSolnC: solution2[2],
-      privSolnD: solution2[3],
-      privSalt: salt2,
-    };
-
-    // Player1 Win! (leave drawn game out of consideration...)
-    const proofHitAll = await generateProof(proofInputHitAll);
-    expect(await hitAndBlow.connect(player2).submitHbProof(...proofHitAll))
-      .to.emit(hitAndBlow, "StageChange")
-      .withArgs(3);
-
+- reveal winner's solution
+```
     // Lastly winner reveals its solution.
     expect(await hitAndBlow.connect(player1).reveal(salt1, ...solution1))
       .to.emit(hitAndBlow, "Reveal")
