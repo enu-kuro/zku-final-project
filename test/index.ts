@@ -124,6 +124,8 @@ describe("Hit and Blow!", function () {
 
     const proof1 = await generateProof(proofInput1);
     await expect(hitAndBlow.connect(player1).submitHbProof(...proof1))
+      .to.emit(hitAndBlow, "RoundChange")
+      .withArgs(2)
       .to.emit(hitAndBlow, "SubmitHB")
       .withArgs(player1.address, 2, ...[hit1, blow1]);
 

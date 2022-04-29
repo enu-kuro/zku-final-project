@@ -69,6 +69,7 @@ contract HitAndBlow is Verifier, Ownable {
     );
 
     event StageChange(Stages stage);
+    event RoundChange(uint8 round);
     event Register(address indexed player);
     event CommitSolutionHash(address indexed player, uint256 solutionHash);
 
@@ -216,6 +217,7 @@ contract HitAndBlow is Verifier, Ownable {
         address opponentAddr = getOpponentAddr();
         if (submittedHB[currentRound - 1][opponentAddr].submitted == true) {
             currentRound++;
+            emit RoundChange(currentRound);
         }
 
         emit SubmitHB(msg.sender, currentRound, hit, blow);
