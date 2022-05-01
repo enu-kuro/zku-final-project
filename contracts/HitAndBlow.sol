@@ -15,21 +15,18 @@ interface IHasher {
 contract HitAndBlow is Verifier, Ownable {
     string private greeting;
     uint8 public constant MAX_ROUND = 50;
-    // TODO: 1始まりにした方が良い？solidityで0はnullと同じ扱いなので。
     uint8 public currentRound = 1;
     address[2] public players;
     address public winner;
     mapping(address => uint256) public solutionHashes;
 
     enum Stages {
-        StageZero,
-        StageOne,
-        StageTwo,
-        StageThree,
-        StageFour,
-        StageFive
+        Register,
+        CommitSolutionHash,
+        Playing,
+        Reveal
     }
-    Stages public stage = Stages.StageZero;
+    Stages public stage = Stages.Register;
 
     modifier atStage(Stages _stage) {
         require(stage == _stage, "not allowed! ");
@@ -74,7 +71,7 @@ contract HitAndBlow is Verifier, Ownable {
     event CommitSolutionHash(address indexed player, uint256 solutionHash);
 
     event Reveal(address indexed player, uint8 a, uint8 b, uint8 c, uint8 d);
-    event GameFinish();
+    event GameFinish(address indexed winner);
     event Initialize();
     IHasher public hasher;
 
@@ -90,7 +87,7 @@ contract HitAndBlow is Verifier, Ownable {
     }
 
     function initGameState() private {
-        stage = Stages.StageZero;
+        stage = Stages.Register;
         currentRound = 1;
         // looking for better way...
         for (uint8 i = 0; i < MAX_ROUND; i++) {
@@ -142,31 +139,31 @@ contract HitAndBlow is Verifier, Ownable {
         }
     }
 
-    function register() public atStage(Stages.StageZero) {
+    function register() public atStage(Stages.Register) {
         if (players[0] == address(0)) {
             players[0] = msg.sender;
             emit Register(msg.sender);
         } else {
             require(players[0] != msg.sender, "already registerd!");
             players[1] = msg.sender;
-            stage = Stages.StageOne;
+            stage = Stages.CommitSolutionHash;
             emit Register(msg.sender);
-            emit StageChange(Stages.StageOne);
+            emit StageChange(Stages.CommitSolutionHash);
         }
     }
 
     // TODO: 数値の重複防ぐにはどうする？
     function commitSolutionHash(uint256 solutionHash)
         public
-        atStage(Stages.StageOne)
+        atStage(Stages.CommitSolutionHash)
     {
         solutionHashes[msg.sender] = solutionHash;
         emit CommitSolutionHash(msg.sender, solutionHash);
 
         // 0で比較すると本当に0のときに困る...
         if (solutionHashes[getOpponentAddr()] != 0) {
-            stage = Stages.StageTwo;
-            emit StageChange(Stages.StageTwo);
+            stage = Stages.Playing;
+            emit StageChange(Stages.Playing);
         }
     }
 
@@ -175,7 +172,7 @@ contract HitAndBlow is Verifier, Ownable {
         uint8 guess2,
         uint8 guess3,
         uint8 guess4
-    ) public atStage(Stages.StageTwo) {
+    ) public atStage(Stages.Playing) {
         require(
             submittedGuess[currentRound - 1][msg.sender].submitted == false,
             "already submitted!"
@@ -194,30 +191,44 @@ contract HitAndBlow is Verifier, Ownable {
         );
     }
 
-    // TODO: how to handle draw?
     function submitHbProof(
         uint256[2] memory a,
         uint256[2][2] memory b,
         uint256[2] memory c,
         uint256[8] memory input
-    ) public atStage(Stages.StageTwo) {
+    ) public atStage(Stages.Playing) {
         require(verifyProof(a, b, c, input), "verification error");
         uint8 hit = uint8(input[5]);
         uint8 blow = uint8(input[6]);
         HB memory hb = HB(hit, blow, true);
         submittedHB[currentRound - 1][msg.sender] = hb;
 
+        bool isDraw = false;
         if (hit == 4) {
-            winner = getOpponentAddr();
-            stage = Stages.StageThree;
-            emit StageChange(Stages.StageThree);
-            return;
+            if (winner != address(0)) {
+                isDraw = true;
+                winner = address(0);
+            } else {
+                winner = getOpponentAddr();
+            }
         }
 
         address opponentAddr = getOpponentAddr();
-        if (submittedHB[currentRound - 1][opponentAddr].submitted == true) {
-            currentRound++;
-            emit RoundChange(currentRound);
+        if (isDraw) {
+            address _winner = winner;
+            initGameState();
+            console.log("GameFinish");
+            emit GameFinish(_winner);
+        } else if (
+            submittedHB[currentRound - 1][opponentAddr].submitted == true
+        ) {
+            if (winner != address(0)) {
+                stage = Stages.Reveal;
+                emit StageChange(Stages.Reveal);
+            } else {
+                currentRound++;
+                emit RoundChange(currentRound);
+            }
         }
 
         emit SubmitHB(msg.sender, currentRound, hit, blow);
@@ -229,7 +240,7 @@ contract HitAndBlow is Verifier, Ownable {
         uint8 b,
         uint8 c,
         uint8 d
-    ) public atStage(Stages.StageThree) {
+    ) public atStage(Stages.Reveal) {
         // Check the hash to ensure the solution is correct
         require(
             hasher.poseidon([salt, a, b, c, d]) == solutionHashes[msg.sender],
@@ -240,9 +251,10 @@ contract HitAndBlow is Verifier, Ownable {
 
         // 勝った方だけrevealすればok。
         if (msg.sender == winner) {
+            address _winner = winner;
             initGameState();
             console.log("GameFinish");
-            emit GameFinish();
+            emit GameFinish(_winner);
         }
     }
 }

@@ -157,6 +157,12 @@ describe("Hit and Blow!", function () {
     // Player1 Win! (leave drawn game out of consideration...)
     const proofHitAll = await generateProof(proofInputHitAll);
     expect(await hitAndBlow.connect(player2).submitHbProof(...proofHitAll))
+      .to.emit(hitAndBlow, "SubmitHB")
+      .withArgs(player2.address, 2, ...[hit4, blow0]);
+
+    // Player2 Round2 (same as Round1 for simplicity)
+    await hitAndBlow.connect(player2).submitGuess(...guess2);
+    await expect(hitAndBlow.connect(player1).submitHbProof(...proof1))
       .to.emit(hitAndBlow, "StageChange")
       .withArgs(3);
 
