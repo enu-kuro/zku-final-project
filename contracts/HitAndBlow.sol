@@ -13,12 +13,30 @@ interface IHasher {
 }
 
 contract HitAndBlow is Verifier, Ownable {
-    string private greeting;
+    // TODO: using uint32 is better?
+    // https://ethereum.stackexchange.com/questions/3067/why-does-uint8-cost-more-gas-than-uint256
     uint8 public constant MAX_ROUND = 50;
     uint8 public currentRound = 1;
     address[2] public players;
     address public winner;
     mapping(address => uint256) public solutionHashes;
+
+    // uint256 public lastActionTimestamp;
+
+    // modifier recordTimestamp() {
+    //     _;
+    //     // solhint-disable-next-line not-rely-on-time
+    //     lastActionTimestamp = block.timestamp;
+    // }
+
+    // modifier canInit() {
+    //     require(
+    //         // solhint-disable-next-line not-rely-on-time
+    //         lastActionTimestamp + 5 minutes > block.timestamp,
+    //         "Not yet over the time limit"
+    //     );
+    //     _;
+    // }
 
     enum Stages {
         Register,
@@ -80,8 +98,15 @@ contract HitAndBlow is Verifier, Ownable {
         hasher = _hasher;
     }
 
-    // for debug everyone can initialize states
-    // function initialize() public onlyOwner {
+    // function initializeOnlyOwner() public onlyOwner {
+    //     initGameState();
+    // }
+
+    // // if a player isn't active for a certain period, you can initialize the game.
+    // function initialize() public canInit {
+    //     initGameState();
+    // }
+
     function initialize() public {
         initGameState();
     }
@@ -160,7 +185,6 @@ contract HitAndBlow is Verifier, Ownable {
         solutionHashes[msg.sender] = solutionHash;
         emit CommitSolutionHash(msg.sender, solutionHash);
 
-        // 0で比較すると本当に0のときに困る...
         if (solutionHashes[getOpponentAddr()] != 0) {
             stage = Stages.Playing;
             emit StageChange(Stages.Playing);
@@ -215,14 +239,15 @@ contract HitAndBlow is Verifier, Ownable {
 
         address opponentAddr = getOpponentAddr();
         if (isDraw) {
-            address _winner = winner;
-            initGameState();
+            emit GameFinish(winner);
             console.log("GameFinish");
-            emit GameFinish(_winner);
+            initGameState();
         } else if (
             submittedHB[currentRound - 1][opponentAddr].submitted == true
         ) {
             if (winner != address(0)) {
+                console.log("GameFinish");
+                emit GameFinish(winner);
                 stage = Stages.Reveal;
                 emit StageChange(Stages.Reveal);
             } else {
@@ -251,10 +276,10 @@ contract HitAndBlow is Verifier, Ownable {
 
         // 勝った方だけrevealすればok。
         if (msg.sender == winner) {
-            address _winner = winner;
+            // address _winner = winner;
             initGameState();
-            console.log("GameFinish");
-            emit GameFinish(_winner);
+            // console.log("GameFinish");
+            // emit GameFinish(_winner);
         }
     }
 }
