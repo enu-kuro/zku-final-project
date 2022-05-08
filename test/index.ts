@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { HitAndBlow } from "../typechain";
+import { HitAndBlow, Verifier } from "../typechain";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { FourNumbers, ProofInput } from "./types";
 import { calculateHB, deploy, deployPoseidon, generateProof } from "./utils";
@@ -17,8 +17,10 @@ describe("Hit and Blow!", function () {
   before(async () => {
     [owner, player1, player2] = await ethers.getSigners();
     const poseidonContract = await deployPoseidon(owner);
+    const verifier = (await deploy("Verifier")) as Verifier;
     hitAndBlow = (await deploy(
       "HitAndBlow",
+      verifier.address,
       poseidonContract.address
     )) as HitAndBlow;
     poseidonJs = await buildPoseidon();

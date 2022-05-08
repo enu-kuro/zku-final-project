@@ -12,7 +12,16 @@ interface IHasher {
         returns (uint256);
 }
 
-contract HitAndBlow is Verifier, Ownable {
+interface IVerifier {
+    function verifyProof(
+        uint256[2] memory a,
+        uint256[2][2] memory b,
+        uint256[2] memory c,
+        uint256[8] memory input
+    ) external view returns (bool);
+}
+
+contract HitAndBlow is Ownable {
     // TODO: using uint32 is better?
     // https://ethereum.stackexchange.com/questions/3067/why-does-uint8-cost-more-gas-than-uint256
     uint8 public constant MAX_ROUND = 50;
@@ -92,9 +101,11 @@ contract HitAndBlow is Verifier, Ownable {
     event GameFinish(address indexed winner);
     event Initialize();
     IHasher public hasher;
+    IVerifier public verifier;
 
-    constructor(IHasher _hasher) {
+    constructor(IVerifier _verifier, IHasher _hasher) {
         console.log("Deploying a HitAndBlow!");
+        verifier = _verifier;
         hasher = _hasher;
     }
 
@@ -221,7 +232,10 @@ contract HitAndBlow is Verifier, Ownable {
         uint256[2] memory c,
         uint256[8] memory input
     ) public atStage(Stages.Playing) {
-        require(verifyProof(a, b, c, input), "verification error");
+        require(
+            IVerifier(verifier).verifyProof(a, b, c, input),
+            "verification error"
+        );
         uint8 hit = uint8(input[5]);
         uint8 blow = uint8(input[6]);
         HB memory hb = HB(hit, blow, true);
