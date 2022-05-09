@@ -109,18 +109,21 @@ contract HitAndBlow is Ownable {
         hasher = _hasher;
     }
 
-    // function initializeOnlyOwner() public onlyOwner {
-    //     initGameState();
-    // }
-
-    // // if a player isn't active for a certain period, you can initialize the game.
-    // function initialize() public canInit {
-    //     initGameState();
-    // }
-
-    function initialize() public {
+    function initializeOnlyOwner() public onlyOwner {
         initGameState();
     }
+
+    function initialize() public {
+        require(
+            msg.sender == players[0] || msg.sender == players[1],
+            "not allowed"
+        );
+        initGameState();
+    }
+
+    // function initialize() public {
+    //     initGameState();
+    // }
 
     function initGameState() private {
         stage = Stages.Register;
