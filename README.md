@@ -1,7 +1,8 @@
 # Hit and Blow Onchain
 
-This is my final project for Zero Knowledge University(zku.ONE).  
+This project is for Zero Knowledge University(zku.ONE).  
 https://zku.one/  
+
 Hit & Blow is a popular code-breaking PvP game.  
 (also known as Bulls and Cows)  
 https://apps.apple.com/app/id1554440792  
@@ -22,6 +23,12 @@ Answer: 1 bull and 2 cows. (The bull is "2", the cows are "4" and "1".)
 The first player to reveal the other's secret number wins the game.
 ```
 https://en.wikipedia.org/wiki/Bulls_and_Cows
+
+# Demo Play (3x speed)
+https://user-images.githubusercontent.com/3497643/167441401-0c616c78-285a-4873-a162-6024f04f011b.mp4
+
+# Demo Site
+https://hit-and-blow-onchain.herokuapp.com/
 
 # Why
 
@@ -47,9 +54,7 @@ Though it needs offchain servers, probably there are some ways to make it more d
 (When you play Dark Forst, you have to store your private key on a browsers local storage for better UX. So you don't have to use Metamask. It's not an ideal solution.)  
 
 
-# Code
-
-## Circuit
+# Circuit
 
 - inputs & output
 ```
@@ -148,89 +153,6 @@ Though it needs offchain servers, probably there are some ways to make it more d
 ```
 https://github.com/enu-kuro/zku-final-project/blob/main/circuits/hitandblow.circom
 
-
-## Test code
-
-- register
-```
-    // register
-    await hitAndBlow.connect(player1).register();
-    expect(await hitAndBlow.connect(player2).register())
-      .to.emit(hitAndBlow, "StageChange")
-      .withArgs(1);
-```
-
-- generate and commit SolutionHash 
-```
-    // Player2 Solution & SolutionHash
-    const solution2: FourNumbers = [6, 1, 3, 9];
-    const salt2 = ethers.BigNumber.from(ethers.utils.randomBytes(32));
-    const solutionHash2 = ethers.BigNumber.from(
-      poseidonJs.F.toObject(poseidonJs([salt2, ...solution2]))
-    );
-
-    // Commit SolutionHash
-    await hitAndBlow.connect(player1).commitSolutionHash(solutionHash1);
-    await expect(hitAndBlow.connect(player2).commitSolutionHash(solutionHash2))
-      .to.emit(hitAndBlow, "StageChange")
-      .withArgs(2);
-```
-
-- submit guess
-```
-    // Player1 submits guess
-    const guess1: FourNumbers = [1, 2, 3, 9];
-    await expect(hitAndBlow.connect(player1).submitGuess(...guess1))
-      .to.emit(hitAndBlow, "SubmitGuess")
-      .withArgs(player1.address, 1, ...guess1);
-```
-
-- generate and verify proof
-```
-    /*
-      Player2 receives Player1's guess and submits num of hit & blow with zk proof.
-    */
-
-    // Player1 guesses Player2 Solution is [1, 2, 3, 9].
-    // It's actually [6, 1, 3, 9] so 2 hits 1 blow.
-    const [hit2, blow2] = calculateHB(guess1, solution2);
-
-    const proofInput2: ProofInput = {
-      pubGuessA: guess1[0],
-      pubGuessB: guess1[1],
-      pubGuessC: guess1[2],
-      pubGuessD: guess1[3],
-      pubNumHit: hit2,
-      pubNumBlow: blow2,
-      pubSolnHash: solutionHash2,
-      privSolnA: solution2[0],
-      privSolnB: solution2[1],
-      privSolnC: solution2[2],
-      privSolnD: solution2[3],
-      privSalt: salt2,
-    };
-
-    // Generate proof at local
-    const proof2 = await generateProof(proofInput2);
-    // Submit proof and verify proof in SmartContract.
-    await hitAndBlow.connect(player2).submitHbProof(...proof2);
-```
-
-- reveal winner's solution
-```
-    // Lastly winner reveals its solution.
-    expect(await hitAndBlow.connect(player1).reveal(salt1, ...solution1))
-      .to.emit(hitAndBlow, "Reveal")
-      .withArgs(player1.address, ...solution1)
-      .to.emit(hitAndBlow, "GameFinish")
-      .withArgs();
-```
-https://github.com/enu-kuro/zku-final-project/blob/main/test/index.ts
-
-
-# Demo
-
-https://user-images.githubusercontent.com/3497643/165052870-ab75f981-b9f8-4fc6-9d7d-1a09e57e699a.mp4
 
 # Frontend code
 
