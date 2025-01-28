@@ -51,7 +51,7 @@ Usually it's not a problem but playing games requaires a lot of interactions.
 Is there any possibility that we execute offchain in mid-game and verify game results onchain at the end of the game?  
 Though it needs offchain servers, probably there are some ways to make it more decentralized and trustless way?  
   
-(When you play Dark Forst, you have to store your private key on a browsers local storage for better UX. So you don't have to use Metamask. It's not an ideal solution.)  
+(When you play Dark Forest, you have to store your private key on a browsers local storage for better UX. So you don't have to use Metamask. It's not an ideal solution.)  
 
 
 # Circuit
